@@ -13,36 +13,38 @@
 
 
 <body>
+  
+  <div class="container-fill">
+    <h1>{{title}}</h1>
 
-  <h1>{{title}}</h1>
+    <h2>Manhattan Plot</h2>
 
-  <h2>Manhattan Plot</h2>
+    <div id="plot" style="height: 800px;"></div><br>
 
-  <div id="plot"></div><br>
+    <h2>Top Locies</h2>
 
-  <h2>Top Locies</h2>
-
-  <table class="table table-sm">
-    <thead>
-      <tr>
-        <th>Variant</th>
-        <th>PValue</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{for peak in peaks}}
+    <table class="table table-sm">
+      <thead>
         <tr>
-          <td>
-            {{peak.chrom}}:{{peak.pos}}
-          </td>
-          <td>
-            {{peak.pval}}
-          </td>
+          <th>Variant</th>
+          <th>PValue</th>
         </tr>
-      {{end}}
-    </tbody>
+      </thead>
+      <tbody>
+        {{for peak in peaks}}
+          <tr>
+            <td>
+              {{peak.chrom}}:{{peak.pos}}
+            </td>
+            <td>
+              {{peak.pval}}
+            </td>
+          </tr>
+        {{end}}
+      </tbody>
 
-  </table>
+    </table>
+  </div>
 
   <!-- jQuery first, then Popper.js, then Bootstrap JS -->
   {{include_script("https://code.jquery.com/jquery-3.5.1.slim.min.js")}}

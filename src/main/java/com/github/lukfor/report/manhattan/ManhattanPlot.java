@@ -22,6 +22,10 @@ public class ManhattanPlot {
 
 	public static final int point_size = 5;
 
+	public static final double suggestive_significance_line = -Math.log10(1e-5);
+
+	public static final double genomewide_significance_line = -Math.log10(5e-08);
+
 	private boolean asShapes = true;
 
 	private boolean annotations = true;
@@ -48,8 +52,8 @@ public class ManhattanPlot {
 		}
 		this.peaks = peaks;
 	}
-	
-	 public List<Variant> getPeaks() {
+
+	public List<Variant> getPeaks() {
 		return peaks;
 	}
 
@@ -115,6 +119,51 @@ public class ManhattanPlot {
 		return shapes;
 	}
 
+	// #c86467
+	// #d0d0d0
+	private List<Object> getSignifanceLines() {
+		List<Object> shapes = new Vector<>();
+		{
+			Map<String, Object> shape = new HashMap<String, Object>();
+			shape.put("type", "line");
+			shape.put("xref", "paper");
+			// + binsize / 2
+			shape.put("x0", 0);
+			shape.put("x1", 1);
+			shape.put("y0", suggestive_significance_line);
+			shape.put("y1", suggestive_significance_line);
+
+			Map<String, Object> lineStyle = new HashMap<>();
+			lineStyle.put("color", "#d0d0d0");
+			lineStyle.put("width", 2);
+			lineStyle.put("dash", "dash");
+
+			shape.put("line", lineStyle);
+
+			shapes.add(shape);
+		}
+		{
+			Map<String, Object> shape = new HashMap<String, Object>();
+			shape.put("type", "line");
+			shape.put("xref", "paper");
+			// + binsize / 2
+			shape.put("x0", 0);
+			shape.put("x1", 1);
+			shape.put("y0", genomewide_significance_line);
+			shape.put("y1", genomewide_significance_line);
+
+			Map<String, Object> lineStyle = new HashMap<>();
+			lineStyle.put("color", "#c86467");
+			lineStyle.put("width", 2);
+			lineStyle.put("dash", "dash");
+
+			shape.put("line", lineStyle);
+
+			shapes.add(shape);
+		}
+		return shapes;
+	}
+
 	public List<Object> getData() {
 		List<Object> traces = new Vector<Object>();
 		long offset = 0;
@@ -157,12 +206,22 @@ public class ManhattanPlot {
 		axis.put("tickvals", tickvals);
 		axis.put("ticktext", ticktext);
 		axis.put("showgrid", false);
+
+		Map<String, Object> title = new HashMap<>();
+		title.put("text", "Chromosome");
+		axis.put("title", title);
+
 		return axis;
 	}
 
 	private Map<String, Object> getYAxis() {
 		Map<String, Object> axis = new HashMap<>();
 		axis.put("fixedrange", true);
+
+		Map<String, Object> title = new HashMap<>();
+		title.put("text", "-log<sub>10</sub>(<i>P</i>)");
+		axis.put("title", title);
+
 		return axis;
 	}
 
@@ -250,9 +309,12 @@ public class ManhattanPlot {
 		layout.put("autosize", false);
 		layout.put("width", 1300);
 		layout.put("height", 800);
+		List<Object> shapes = new Vector<>();
 		if (asShapes) {
-			layout.put("shapes", getShapes());
+			shapes.addAll(getShapes());
 		}
+		shapes.addAll(getSignifanceLines());
+		layout.put("shapes", shapes);
 		return layout;
 	}
 
