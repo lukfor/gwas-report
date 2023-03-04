@@ -218,16 +218,13 @@ public class ManhattanPlot {
 		for (Variant variant : bin.getUnbinnedVariants()) {
 			x.add((variant.pos / BIN_SIZE) + offset);
 			y.add(variant.pval);
-			// TODO: add variant id
-			text.add(variant.chrom + ":" + variant.pos + "<br>SNP: <br>Gene: ");
+			text.add(variant.getDetails());
 
 		}
 		for (Variant variant : bin.getPeakVariants()) {
 			x.add((variant.pos / BIN_SIZE) + offset);
 			y.add(variant.pval);
-			// TODO: add variant id
-			text.add(variant.chrom + ":" + variant.pos + "<br>SNP: <br>Gene: ");
-
+			text.add(variant.getDetails());
 		}
 		trace.put("x", x);
 		trace.put("y", y);
@@ -255,7 +252,7 @@ public class ManhattanPlot {
 			annotation.put("y", variant.pval);
 			annotation.put("xref", "x");
 			annotation.put("yref", "y");
-			annotation.put("text", variant.chrom + ":" + variant.pos);
+			annotation.put("text", variant.getName());
 			annotation.put("ax", 0);
 			annotation.put("showarrow", true);
 			annotation.put("arrowhead", 0);

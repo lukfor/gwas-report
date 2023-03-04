@@ -9,6 +9,8 @@ import com.github.lukfor.binner.Binner;
 import com.github.lukfor.binner.Variant;
 import com.github.lukfor.report.Report;
 import com.github.lukfor.report.manhattan.ManhattanPlot;
+import com.github.lukfor.report.manhattan.ManhattanPlotWriter;
+import com.github.lukfor.util.OutputFormat;
 
 import genepi.io.table.reader.CsvTableReader;
 import picocli.CommandLine.Command;
@@ -52,8 +54,12 @@ public class ReportCommand implements Callable<Integer> {
 	private String ref = null;
 
 	@Option(names = {
-			"--alt" }, description = "Alt allele column in input file", required = false, showDefaultValue = Visibility.ALWAYS)
+			"--alt" }, description = "Alt allele column in input file (effect allele)", required = false, showDefaultValue = Visibility.ALWAYS)
 	private String alt = null;
+
+	@Option(names = {
+			"--beta" }, description = "Beta column in input file", required = false, showDefaultValue = Visibility.ALWAYS)
+	private String beta = null;
 
 	@Option(names = {
 			"--rsid" }, description = "RsID column in input file", required = false, showDefaultValue = Visibility.ALWAYS)
@@ -65,6 +71,10 @@ public class ReportCommand implements Callable<Integer> {
 
 	@Option(names = { "--output" }, description = "Output filename", required = true)
 	private String output;
+
+	@Option(names = {
+			"--format" }, description = "Output format", required = false, showDefaultValue = Visibility.ALWAYS)
+	private OutputFormat format = OutputFormat.HTML;
 
 	public void setInput(String input) {
 		this.input = input;
@@ -80,6 +90,10 @@ public class ReportCommand implements Callable<Integer> {
 
 	public void setPval(String pval) {
 		this.pval = pval;
+	}
+
+	public void setSeparator(char separator) {
+		this.separator = separator;
 	}
 
 	public void setOutput(String output) {
@@ -98,8 +112,32 @@ public class ReportCommand implements Callable<Integer> {
 		this.annotations = annotations;
 	}
 
+	public void setRsid(String rsid) {
+		this.rsid = rsid;
+	}
+
+	public void setGene(String gene) {
+		this.gene = gene;
+	}
+
+	public void setRef(String ref) {
+		this.ref = ref;
+	}
+
+	public void setAlt(String alt) {
+		this.alt = alt;
+	}
+
+	public void setBeta(String beta) {
+		this.beta = beta;
+	}
+
 	public void setTitle(String title) {
 		this.title = title;
+	}
+
+	public void setFormat(OutputFormat format) {
+		this.format = format;
 	}
 
 	@Override
@@ -122,6 +160,15 @@ public class ReportCommand implements Callable<Integer> {
 			} else {
 				variant.pval = -Math.log10(reader.getDouble(pval));
 			}
+			if (rsid != null) {
+				variant.id = reader.getString(rsid);
+			}
+			if (beta != null) {
+				variant.beta = reader.getString(beta);
+			}
+			if (gene != null) {
+				variant.gene = reader.getString(gene);
+			}
 			// TODO: load rsid and gene when set
 
 			binner.process_variant(variant);
@@ -140,11 +187,23 @@ public class ReportCommand implements Callable<Integer> {
 		data.setPeaks(new ArrayList<Variant>(binner.getPeaks()));
 		data.setUnbinnedVariants(new ArrayList<Variant>(binner.getUnbinnedVariants()));
 
-		Report report = new Report(data);
-		if (title != null && !title.isEmpty()) {
-			report.setTitle(title);
+		if (format == OutputFormat.HTML) {
+			Report report = new Report(data);
+			if (title != null && !title.isEmpty()) {
+				report.setTitle(title);
+			}
+			report.saveAsFile(new File(output));
 		}
-		report.saveAsFile(new File(output));
+
+		if (format == OutputFormat.CSV) {
+			ManhattanPlotWriter.saveAsFile(data, new File(output));
+			return 0;
+		}
+
+		if (format == OutputFormat.JSON) {
+			System.out.println("Not yet implemented.");
+			return 1;
+		}
 
 		return 0;
 	}
