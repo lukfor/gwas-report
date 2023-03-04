@@ -35,7 +35,7 @@ public class Variant {
 			label += "<br>Gene: " + gene;
 		}
 		if (ref != null) {
-			label += "<br>Reference Allele: " + ref;
+			label += "<br>Ref. Allele: " + ref;
 		}
 		if (alt != null) {
 			label += "<br>Effect Allele: " + alt;

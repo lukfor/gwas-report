@@ -139,4 +139,11 @@ public class Binner {
 		return bins;
 	}
 
+	public void close() {
+
+		if (peak_best_variant != null) {
+			_maybe_peak_variant(peak_best_variant);
+		}
+	}
+
 }

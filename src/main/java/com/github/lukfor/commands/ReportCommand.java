@@ -10,9 +10,11 @@ import com.github.lukfor.binner.Variant;
 import com.github.lukfor.report.Report;
 import com.github.lukfor.report.manhattan.ManhattanPlot;
 import com.github.lukfor.report.manhattan.ManhattanPlotWriter;
+import com.github.lukfor.util.AnnotationType;
 import com.github.lukfor.util.OutputFormat;
 
 import genepi.io.table.reader.CsvTableReader;
+import genepi.io.table.reader.ITableReader;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Help.Visibility;
 import picocli.CommandLine.Option;
@@ -23,13 +25,13 @@ public class ReportCommand implements Callable<Integer> {
 	@Option(names = { "--input" }, description = "Input filename", required = true)
 	private String input;
 
-	@Option(names = { "--chr" }, description = "Chromosome column in input file", required = true)
+	@Option(names = { "--chr" }, description = "Chromosome column in input file", required = false)
 	private String chr = "CHROM";
 
-	@Option(names = { "--position", "--pos" }, description = "Position column in input file", required = true)
+	@Option(names = { "--position", "--pos" }, description = "Position column in input file", required = false)
 	private String position = "GENPOS";
 
-	@Option(names = { "--pvalue", "--pval" }, description = "PValue column in input file", required = true)
+	@Option(names = { "--pvalue", "--pval" }, description = "PValue column in input file", required = false)
 	private String pval = "LOG10P";
 
 	@Option(names = { "--title" }, description = "Custom title of report", required = false)
@@ -42,8 +44,9 @@ public class ReportCommand implements Callable<Integer> {
 	// TODO: add flag --optimize
 	private boolean optimize = true;
 
-	// TODO: add flag --annotations
-	private boolean annotations = true;
+	@Option(names = {
+			"--annotation" }, description = "Show annotation labels in plot", required = false, showDefaultValue = Visibility.ALWAYS)
+	private AnnotationType annotation = AnnotationType.NONE;
 
 	@Option(names = {
 			"--sep" }, description = "Separator of input file", required = false, showDefaultValue = Visibility.ALWAYS)
@@ -51,19 +54,19 @@ public class ReportCommand implements Callable<Integer> {
 
 	@Option(names = {
 			"--ref" }, description = "Ref allele column in input file", required = false, showDefaultValue = Visibility.ALWAYS)
-	private String ref = null;
+	private String ref = "ALLELE0";
 
 	@Option(names = {
 			"--alt" }, description = "Alt allele column in input file (effect allele)", required = false, showDefaultValue = Visibility.ALWAYS)
-	private String alt = null;
+	private String alt = "ALLELE1";
 
 	@Option(names = {
 			"--beta" }, description = "Beta column in input file", required = false, showDefaultValue = Visibility.ALWAYS)
-	private String beta = null;
+	private String beta = "BETA";
 
 	@Option(names = {
 			"--rsid" }, description = "RsID column in input file", required = false, showDefaultValue = Visibility.ALWAYS)
-	private String rsid = null;
+	private String rsid = "ID";
 
 	@Option(names = {
 			"--gene" }, description = "Gene column in input file", required = false, showDefaultValue = Visibility.ALWAYS)
@@ -108,8 +111,8 @@ public class ReportCommand implements Callable<Integer> {
 		this.optimize = optimize;
 	}
 
-	public void setAnnotations(boolean annotations) {
-		this.annotations = annotations;
+	public void setAnnotation(AnnotationType annotation) {
+		this.annotation = annotation;
 	}
 
 	public void setRsid(String rsid) {
@@ -147,6 +150,27 @@ public class ReportCommand implements Callable<Integer> {
 
 		CsvTableReader reader = new CsvTableReader(input, separator, true);
 
+		if (!reader.hasColumn(chr)) {
+			System.out.println("Error: Column '" + chr + "' not found.");
+			return 1;
+		}
+
+		if (!reader.hasColumn(chr)) {
+			System.out.println("Error: Column '" + position + "' not found.");
+			return 1;
+		}
+
+		if (!reader.hasColumn(chr)) {
+			System.out.println("Error: Column '" + pval + "' not found.");
+			return 1;
+		}
+
+		rsid = checkColumn(reader, rsid, "rsid");
+		beta = checkColumn(reader, beta, "beta");
+		gene = checkColumn(reader, gene, "gene");
+		alt = checkColumn(reader, alt, "alt");
+		ref = checkColumn(reader, ref, "ref");
+
 		Binner binner = new Binner();
 
 		int count = 0;
@@ -160,22 +184,26 @@ public class ReportCommand implements Callable<Integer> {
 			} else {
 				variant.pval = -Math.log10(reader.getDouble(pval));
 			}
-			if (rsid != null) {
+			if (rsid != null && !rsid.isEmpty()) {
 				variant.id = reader.getString(rsid);
 			}
-			if (beta != null) {
+			if (beta != null && !beta.isEmpty()) {
 				variant.beta = reader.getString(beta);
 			}
-			if (gene != null) {
+			if (gene != null && !gene.isEmpty()) {
 				variant.gene = reader.getString(gene);
 			}
-			// TODO: load rsid and gene when set
+			if (alt != null && !alt.isEmpty()) {
+				variant.alt = reader.getString(alt);
+			}
+			if (ref != null && !ref.isEmpty()) {
+				variant.ref = reader.getString(ref);
+			}
 
 			binner.process_variant(variant);
 		}
 
-		// TODO: last peak/bin is not closed...
-		// binner.stop();
+		binner.close();
 
 		reader.close();
 
@@ -183,7 +211,7 @@ public class ReportCommand implements Callable<Integer> {
 
 		ManhattanPlot data = new ManhattanPlot(optimize);
 		data.setBins(binner.getBins());
-		data.setShowAnnotations(annotations);
+		data.setAnnotation(annotation);
 		data.setPeaks(new ArrayList<Variant>(binner.getPeaks()));
 		data.setUnbinnedVariants(new ArrayList<Variant>(binner.getUnbinnedVariants()));
 
@@ -206,6 +234,18 @@ public class ReportCommand implements Callable<Integer> {
 		}
 
 		return 0;
+	}
+
+	private String checkColumn(ITableReader reader, String column, String param) {
+		if (column != null && !column.isEmpty()) {
+			if (reader.hasColumn(column)) {
+				return column;
+			} else {
+				System.out.println(
+						"Warning: Column '" + column + "' not found. Use '--" + param + " <COLUMN>' to change it.");
+			}
+		}
+		return null;
 	}
 
 }

@@ -9,6 +9,7 @@ import com.github.lukfor.binner.Bin;
 import com.github.lukfor.binner.ChromBin;
 import com.github.lukfor.binner.Chromosome;
 import com.github.lukfor.binner.Variant;
+import com.github.lukfor.util.AnnotationType;
 import com.github.lukfor.util.PlotlyUtil;
 
 public class ManhattanPlot {
@@ -41,9 +42,15 @@ public class ManhattanPlot {
 
 	private boolean asShapes = true;
 
-	private boolean annotations = true;
+	private AnnotationType annotation = AnnotationType.NONE;
 
 	private List<Variant> peaks;
+
+	private int countLines = 0;
+
+	private int countBins = 0;
+
+	private int countPoints = 0;
 
 	public ManhattanPlot(boolean asShapes) {
 		this.asShapes = asShapes;
@@ -108,15 +115,49 @@ public class ManhattanPlot {
 		List<Object> shapes = new Vector<>();
 		ChromBin bin = bins.get(chrIndex);
 		for (Bin singleBin : bin.getBins().values()) {
+			countBins += singleBin.qval.size();
 			for (Double[] line : singleBin.getLines()) {
-
-				double x = (singleBin.startpos / BIN_SIZE) + offset;
-				Map<String, Object> shape = PlotlyUtil.createLine(x, line[0], x, line[1], color, POINT_SIZE);
-
-				shapes.add(shape);
+				if (!line[0].equals(line[1])) {
+					countLines++;
+					double x = (singleBin.startpos / BIN_SIZE) + offset;
+					Map<String, Object> shape = PlotlyUtil.createLine(x, line[0], x, line[1], color, POINT_SIZE);
+					shapes.add(shape);
+				}
 			}
 		}
 		return shapes;
+	}
+
+	private Map<String, Object> getSingleBinsAsTrace(int chrIndex, long offset, String color) {
+		Map<String, Object> trace = new HashMap<String, Object>();
+
+		ChromBin bin = bins.get(chrIndex);
+		List<Double> x = new Vector<Double>();
+		List<Double> y = new Vector<Double>();
+		for (Bin singleBin : bin.getBins().values()) {
+			countBins += singleBin.qval.size();
+			for (Double[] line : singleBin.getLines()) {
+				if (line[0].equals(line[1])) {
+					countPoints++;
+					double x0 = (singleBin.startpos / BIN_SIZE) + offset;
+					x.add(x0);
+					y.add(line[0]);
+				}
+			}
+		}
+		trace.put("x", x);
+		trace.put("y", y);
+		trace.put("mode", "markers");
+		trace.put("type", "scatter");
+		trace.put("name", bin.chrom);
+
+		Map<String, Object> marker = new HashMap<>();
+		marker.put("color", color);
+		marker.put("size", POINT_SIZE);
+
+		trace.put("marker", marker);
+		trace.put("hoverinfo", "none");
+		return trace;
 	}
 
 	private List<Object> getSignifanceLines() {
@@ -136,6 +177,8 @@ public class ManhattanPlot {
 			String color = CHROMOSOME_COLORS[index % CHROMOSOME_COLORS.length];
 			if (!asShapes) {
 				traces.add(getBinsAsTrace(chr, offset, color));
+			} else {
+				traces.add(getSingleBinsAsTrace(chr, offset, color));
 			}
 			traces.add(getVariantsAsTrace(chr, offset, color));
 			offset = updateOffset(offset, chr);
@@ -144,11 +187,11 @@ public class ManhattanPlot {
 		return traces;
 	}
 
-	private List<Object> getAnnotations() {
+	private List<Object> getAnnotations(AnnotationType annotationType) {
 		List<Object> traces = new Vector<Object>();
 		long offset = 0;
 		for (int chr : bins.keySet()) {
-			traces.addAll(getAnnotationsByChromosome(chr, offset));
+			traces.addAll(getAnnotationsByChromosome(chr, offset, annotationType));
 			offset = updateOffset(offset, chr);
 		}
 		return traces;
@@ -199,6 +242,7 @@ public class ManhattanPlot {
 			offset = updateOffset(offset, chr);
 			index++;
 		}
+		System.out.println("Bins: " + countBins + " --> Points: " + countPoints + ", Lines: " + countLines);
 		System.out.println("Created " + shapes.size() + " shapes");
 
 		return shapes;
@@ -243,7 +287,7 @@ public class ManhattanPlot {
 		return trace;
 	}
 
-	public List<Object> getAnnotationsByChromosome(int chrIndex, long offset) {
+	public List<Object> getAnnotationsByChromosome(int chrIndex, long offset, AnnotationType annotationType) {
 		List<Object> annotations = new Vector<Object>();
 		ChromBin bin = bins.get(chrIndex);
 		for (Variant variant : bin.getPeakVariants()) {
@@ -252,7 +296,11 @@ public class ManhattanPlot {
 			annotation.put("y", variant.pval);
 			annotation.put("xref", "x");
 			annotation.put("yref", "y");
-			annotation.put("text", variant.getName());
+			if (annotationType == AnnotationType.GENE) {
+				annotation.put("text", variant.gene);
+			} else {
+				annotation.put("text", variant.getName());
+			}
 			annotation.put("ax", 0);
 			annotation.put("showarrow", true);
 			annotation.put("arrowhead", 0);
@@ -269,8 +317,8 @@ public class ManhattanPlot {
 		layout.put("yaxis", getYAxis());
 		layout.put("showlegend", false);
 		layout.put("hovermode", "closest");
-		if (annotations) {
-			layout.put("annotations", getAnnotations());
+		if (annotation != AnnotationType.NONE) {
+			layout.put("annotations", getAnnotations(annotation));
 		}
 		layout.put("autosize", false);
 		layout.put("width", 1300);
@@ -284,8 +332,8 @@ public class ManhattanPlot {
 		return layout;
 	}
 
-	public void setShowAnnotations(boolean annotations) {
-		this.annotations = annotations;
+	public void setAnnotation(AnnotationType annotation) {
+		this.annotation = annotation;
 	}
 
 }
