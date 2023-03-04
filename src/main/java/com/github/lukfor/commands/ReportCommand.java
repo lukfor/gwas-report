@@ -30,7 +30,7 @@ public class ReportCommand implements Callable<Integer> {
 	@Option(names = { "--pvalue", "--pval" }, description = "PValue column in input file", required = true)
 	private String pval = "LOG10P";
 
-	@Option(names = { "--title" }, description = "PValue column in input file", required = false)
+	@Option(names = { "--title" }, description = "Custom title of report", required = false)
 	private String title = null;
 
 	// TODO: add flag to use p-values (not -log10)

@@ -9,22 +9,35 @@ import com.github.lukfor.binner.Bin;
 import com.github.lukfor.binner.ChromBin;
 import com.github.lukfor.binner.Chromosome;
 import com.github.lukfor.binner.Variant;
+import com.github.lukfor.util.PlotlyUtil;
 
 public class ManhattanPlot {
 
+	public static final double SUGGESTIVE_SIGNIFICANCE_LINE = -Math.log10(1e-5);
+
+	public static final String SUGGESTIVE_SIGNIFICANCE_LINE_COLOR = "#d0d0d0";
+
+	public static final int SUGGESTIVE_SIGNIFICANCE_LINE_WIDTH = 2;
+
+	public static final String SUGGESTIVE_SIGNIFICANCE_LINE_STYLE = "dash";
+
+	public static final double GENOMEWIDE_SIGNIFICANCE_LINE = -Math.log10(5e-08);
+
+	public static final String GENOMEWIDE_SIGNIFICANCE_LINE_COLOR = "#c86467";
+
+	public static final int GENOMEWIDE_SIGNIFICANCE_LINE_WIDTH = 2;
+
+	public static final String GENOMEWIDE_SIGNIFICANCE_LINE_STYLE = "dash";
+
+	public static final String[] CHROMOSOME_COLORS = new String[] { "#779ECB", "#03254c" };
+
+	public static final double BIN_SIZE = 3_000_000;
+
+	public static final int CHROMOSOME_GAP = 10;
+
+	public static final int POINT_SIZE = 5;
+
 	private Map<Integer, ChromBin> bins;
-
-	private String[] colors = new String[] { "#779ECB", "#03254c" };
-
-	public static final double bin_size = 3_000_000;
-
-	public static final int gap = 10;
-
-	public static final int point_size = 5;
-
-	public static final double suggestive_significance_line = -Math.log10(1e-5);
-
-	public static final double genomewide_significance_line = -Math.log10(5e-08);
 
 	private boolean asShapes = true;
 
@@ -65,14 +78,14 @@ public class ManhattanPlot {
 		}
 	}
 
-	private Map<String, Object> getTrace(int chrIndex, long offset, String color) {
+	private Map<String, Object> getBinsAsTrace(int chrIndex, long offset, String color) {
 		Map<String, Object> trace = new HashMap<String, Object>();
 		List<Double> x = new Vector<Double>();
 		List<Double> y = new Vector<Double>();
 		ChromBin bin = bins.get(chrIndex);
 		for (Bin singleBin : bin.getBins().values()) {
 			for (double p : singleBin.qval) {
-				x.add((singleBin.startpos / bin_size) + offset);
+				x.add((singleBin.startpos / BIN_SIZE) + offset);
 				y.add(p);
 			}
 		}
@@ -84,34 +97,21 @@ public class ManhattanPlot {
 
 		Map<String, Object> marker = new HashMap<>();
 		marker.put("color", color);
-		marker.put("size", point_size);
+		marker.put("size", POINT_SIZE);
 
 		trace.put("marker", marker);
 		trace.put("hoverinfo", "none");
 		return trace;
 	}
 
-	private List<Object> getShapes(int chrIndex, long offset, String color) {
+	private List<Object> getBinsAsShapes(int chrIndex, long offset, String color) {
 		List<Object> shapes = new Vector<>();
 		ChromBin bin = bins.get(chrIndex);
 		for (Bin singleBin : bin.getBins().values()) {
 			for (Double[] line : singleBin.getLines()) {
-				Map<String, Object> shape = new HashMap<String, Object>();
-				shape.put("type", "line");
-				shape.put("xref", "x");
-				shape.put("yref", "y");
-				// + binsize / 2
-				shape.put("x0", (singleBin.startpos / bin_size) + offset);
-				shape.put("x1", (singleBin.startpos / bin_size) + offset);
-				shape.put("y0", line[0]);
-				shape.put("y1", line[1]);
 
-				Map<String, Object> lineStyle = new HashMap<>();
-				lineStyle.put("color", color);
-				lineStyle.put("width", point_size);
-				lineStyle.put("linecap", "round");
-
-				shape.put("line", lineStyle);
+				double x = (singleBin.startpos / BIN_SIZE) + offset;
+				Map<String, Object> shape = PlotlyUtil.createLine(x, line[0], x, line[1], color, POINT_SIZE);
 
 				shapes.add(shape);
 			}
@@ -119,48 +119,12 @@ public class ManhattanPlot {
 		return shapes;
 	}
 
-	// #c86467
-	// #d0d0d0
 	private List<Object> getSignifanceLines() {
 		List<Object> shapes = new Vector<>();
-		{
-			Map<String, Object> shape = new HashMap<String, Object>();
-			shape.put("type", "line");
-			shape.put("xref", "paper");
-			// + binsize / 2
-			shape.put("x0", 0);
-			shape.put("x1", 1);
-			shape.put("y0", suggestive_significance_line);
-			shape.put("y1", suggestive_significance_line);
-
-			Map<String, Object> lineStyle = new HashMap<>();
-			lineStyle.put("color", "#d0d0d0");
-			lineStyle.put("width", 2);
-			lineStyle.put("dash", "dash");
-
-			shape.put("line", lineStyle);
-
-			shapes.add(shape);
-		}
-		{
-			Map<String, Object> shape = new HashMap<String, Object>();
-			shape.put("type", "line");
-			shape.put("xref", "paper");
-			// + binsize / 2
-			shape.put("x0", 0);
-			shape.put("x1", 1);
-			shape.put("y0", genomewide_significance_line);
-			shape.put("y1", genomewide_significance_line);
-
-			Map<String, Object> lineStyle = new HashMap<>();
-			lineStyle.put("color", "#c86467");
-			lineStyle.put("width", 2);
-			lineStyle.put("dash", "dash");
-
-			shape.put("line", lineStyle);
-
-			shapes.add(shape);
-		}
+		shapes.add(PlotlyUtil.createHorizontalLine(SUGGESTIVE_SIGNIFICANCE_LINE, SUGGESTIVE_SIGNIFICANCE_LINE_COLOR,
+				SUGGESTIVE_SIGNIFICANCE_LINE_WIDTH, SUGGESTIVE_SIGNIFICANCE_LINE_STYLE));
+		shapes.add(PlotlyUtil.createHorizontalLine(GENOMEWIDE_SIGNIFICANCE_LINE, GENOMEWIDE_SIGNIFICANCE_LINE_COLOR,
+				GENOMEWIDE_SIGNIFICANCE_LINE_WIDTH, GENOMEWIDE_SIGNIFICANCE_LINE_STYLE));
 		return shapes;
 	}
 
@@ -169,12 +133,12 @@ public class ManhattanPlot {
 		long offset = 0;
 		int index = 0;
 		for (int chr : bins.keySet()) {
-			String color = colors[index % colors.length];
+			String color = CHROMOSOME_COLORS[index % CHROMOSOME_COLORS.length];
 			if (!asShapes) {
-				traces.add(getTrace(chr, offset, color));
+				traces.add(getBinsAsTrace(chr, offset, color));
 			}
-			traces.add(getTraceUnbinned(chr, offset, color));
-			offset += (bins.get(chr).getLength() / bin_size) + gap;
+			traces.add(getVariantsAsTrace(chr, offset, color));
+			offset = updateOffset(offset, chr);
 			index++;
 		}
 		return traces;
@@ -185,7 +149,7 @@ public class ManhattanPlot {
 		long offset = 0;
 		for (int chr : bins.keySet()) {
 			traces.addAll(getAnnotationsByChromosome(chr, offset));
-			offset += (bins.get(chr).getLength() / bin_size) + gap;
+			offset = updateOffset(offset, chr);
 		}
 		return traces;
 	}
@@ -200,8 +164,8 @@ public class ManhattanPlot {
 		for (int chr : bins.keySet()) {
 			ChromBin bin = bins.get(chr);
 			ticktext.add(bin.chrom);
-			tickvals.add(offset + bins.get(chr).getLength() / bin_size / 2);
-			offset += (bins.get(chr).getLength() / bin_size) + gap;
+			tickvals.add(offset + bins.get(chr).getLength() / BIN_SIZE / 2);
+			offset = updateOffset(offset, chr);
 		}
 		axis.put("tickvals", tickvals);
 		axis.put("ticktext", ticktext);
@@ -226,35 +190,40 @@ public class ManhattanPlot {
 	}
 
 	private List<Object> getShapes() {
-		List<Object> traces = new Vector<Object>();
+		List<Object> shapes = new Vector<Object>();
 		long offset = 0;
 		int index = 0;
 		for (int chr : bins.keySet()) {
-			String color = colors[index % colors.length];
-			traces.addAll(getShapes(chr, offset, color));
-			offset += (bins.get(chr).getLength() / bin_size) + gap;
+			String color = CHROMOSOME_COLORS[index % CHROMOSOME_COLORS.length];
+			shapes.addAll(getBinsAsShapes(chr, offset, color));
+			offset = updateOffset(offset, chr);
 			index++;
 		}
-		System.out.println("Created " + traces.size() + " shapes");
+		System.out.println("Created " + shapes.size() + " shapes");
 
-		return traces;
+		return shapes;
 	}
 
-	private Map<String, Object> getTraceUnbinned(int chrIndex, long offset, String color) {
+	private long updateOffset(long offset, int chr) {
+		offset += (bins.get(chr).getLength() / BIN_SIZE) + CHROMOSOME_GAP;
+		return offset;
+	}
+
+	private Map<String, Object> getVariantsAsTrace(int chrIndex, long offset, String color) {
 		Map<String, Object> trace = new HashMap<String, Object>();
 		List<Double> x = new Vector<Double>();
 		List<Double> y = new Vector<Double>();
 		List<String> text = new Vector<String>();
 		ChromBin bin = bins.get(chrIndex);
 		for (Variant variant : bin.getUnbinnedVariants()) {
-			x.add((variant.pos / bin_size) + offset);
+			x.add((variant.pos / BIN_SIZE) + offset);
 			y.add(variant.pval);
 			// TODO: add variant id
 			text.add(variant.chrom + ":" + variant.pos + "<br>SNP: <br>Gene: ");
 
 		}
 		for (Variant variant : bin.getPeakVariants()) {
-			x.add((variant.pos / bin_size) + offset);
+			x.add((variant.pos / BIN_SIZE) + offset);
 			y.add(variant.pval);
 			// TODO: add variant id
 			text.add(variant.chrom + ":" + variant.pos + "<br>SNP: <br>Gene: ");
@@ -269,7 +238,7 @@ public class ManhattanPlot {
 		trace.put("hovertemplate", "%{text}");
 
 		Map<String, Object> marker = new HashMap<>();
-		marker.put("size", point_size);
+		marker.put("size", POINT_SIZE);
 
 		marker.put("color", color);
 
@@ -282,7 +251,7 @@ public class ManhattanPlot {
 		ChromBin bin = bins.get(chrIndex);
 		for (Variant variant : bin.getPeakVariants()) {
 			Map<String, Object> annotation = new HashMap<>();
-			annotation.put("x", (variant.pos / bin_size) + offset);
+			annotation.put("x", (variant.pos / BIN_SIZE) + offset);
 			annotation.put("y", variant.pval);
 			annotation.put("xref", "x");
 			annotation.put("yref", "y");
