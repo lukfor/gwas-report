@@ -60,12 +60,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.github.samtools</groupId>
-			<artifactId>htsjdk</artifactId>
-			<version>3.0.4</version>
-		</dependency>
-			
-		<dependency>
 			<groupId>genepi</groupId>
 			<artifactId>genepi-io</artifactId>
 			<version>1.2.0</version>

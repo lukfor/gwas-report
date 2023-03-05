@@ -3,6 +3,7 @@ package com.github.lukfor.binner;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.github.lukfor.util.BinningAlgorithm;
 import com.github.lukfor.util.IPoppedCallback;
 import com.github.lukfor.util.MaxPriorityQueue;
 
@@ -34,8 +35,10 @@ public class Binner {
 
 	private int bin_length = 3_000_000;
 
-	public Binner() {
-
+	private BinningAlgorithm binning;
+	
+	public Binner(BinningAlgorithm binning) {
+		this.binning = binning;
 		peak_best_variant = null;
 		peak_last_chrpos = null;
 		peak_pq = new MaxPriorityQueue(500);
@@ -54,6 +57,11 @@ public class Binner {
 			_qval_bin_size = 0.1;
 		}
 
+		if (binning == BinningAlgorithm.NONE) {
+			unbinned_variant_pq.add(variant);
+			return;
+		}
+		
 		if (variant.pval > manhattan_peak_pval_threshold) {
 			if (peak_best_variant == null) {
 				peak_best_variant = variant;

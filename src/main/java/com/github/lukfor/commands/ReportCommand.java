@@ -11,7 +11,9 @@ import com.github.lukfor.report.Report;
 import com.github.lukfor.report.manhattan.ManhattanPlot;
 import com.github.lukfor.report.manhattan.ManhattanPlotWriter;
 import com.github.lukfor.util.AnnotationType;
+import com.github.lukfor.util.BinningAlgorithm;
 import com.github.lukfor.util.OutputFormat;
+import com.github.lukfor.util.PValFormat;
 
 import genepi.io.table.reader.CsvTableReader;
 import genepi.io.table.reader.ITableReader;
@@ -25,27 +27,28 @@ public class ReportCommand implements Callable<Integer> {
 	@Option(names = { "--input" }, description = "Input filename", required = true)
 	private String input;
 
-	@Option(names = { "--chr" }, description = "Chromosome column in input file", required = false)
+	@Option(names = { "--chr" }, description = "Chromosome column in input file", required = false,  showDefaultValue = Visibility.ALWAYS)
 	private String chr = "CHROM";
 
-	@Option(names = { "--position", "--pos" }, description = "Position column in input file", required = false)
+	@Option(names = { "--position", "--pos" }, description = "Position column in input file", required = false,  showDefaultValue = Visibility.ALWAYS)
 	private String position = "GENPOS";
 
-	@Option(names = { "--pvalue", "--pval" }, description = "PValue column in input file", required = false)
+	@Option(names = { "--pvalue", "--pval" }, description = "PValue column in input file", required = false,  showDefaultValue = Visibility.ALWAYS)
 	private String pval = "LOG10P";
 
 	@Option(names = { "--title" }, description = "Custom title of report", required = false)
 	private String title = null;
 
-	// TODO: add flag to use p-values (not -log10)
-	// --neg-log-pvalue
-	private boolean negLogPvalue = true;
-
-	// TODO: add flag --optimize
-	private boolean optimize = true;
+	@Option(names = { "--pvalue-format",
+			"--pval-format" }, description = "Pval format. Possible values: ${COMPLETION-CANDIDATES}", required = false, showDefaultValue = Visibility.ALWAYS)
+	private PValFormat pvalFormat = PValFormat.NEG_LOG_PVAL;
 
 	@Option(names = {
-			"--annotation" }, description = "Show annotation labels in plot", required = false, showDefaultValue = Visibility.ALWAYS)
+			"--binning" }, description = "Binning Algorithm. Possible values: ${COMPLETION-CANDIDATES}", required = false, showDefaultValue = Visibility.ALWAYS)
+	private BinningAlgorithm binning = BinningAlgorithm.BIN_TO_POINTS_AND_LINES;
+
+	@Option(names = {
+			"--annotation" }, description = "Show annotation labels in plot. Possible values: ${COMPLETION-CANDIDATES}", required = false, showDefaultValue = Visibility.ALWAYS)
 	private AnnotationType annotation = AnnotationType.NONE;
 
 	@Option(names = {
@@ -76,7 +79,7 @@ public class ReportCommand implements Callable<Integer> {
 	private String output;
 
 	@Option(names = {
-			"--format" }, description = "Output format", required = false, showDefaultValue = Visibility.ALWAYS)
+			"--format" }, description = "Output format. Possible values: ${COMPLETION-CANDIDATES}", required = false, showDefaultValue = Visibility.ALWAYS)
 	private OutputFormat format = OutputFormat.HTML;
 
 	public void setInput(String input) {
@@ -103,12 +106,12 @@ public class ReportCommand implements Callable<Integer> {
 		this.output = output;
 	}
 
-	public void setNegLogPvalue(boolean negLogPvalue) {
-		this.negLogPvalue = negLogPvalue;
+	public void setPvalFormat(PValFormat pvalFormat) {
+		this.pvalFormat = pvalFormat;
 	}
 
-	public void setOptimize(boolean optimize) {
-		this.optimize = optimize;
+	public void setBinning(BinningAlgorithm binning) {
+		this.binning = binning;
 	}
 
 	public void setAnnotation(AnnotationType annotation) {
@@ -171,7 +174,7 @@ public class ReportCommand implements Callable<Integer> {
 		alt = checkColumn(reader, alt, "alt");
 		ref = checkColumn(reader, ref, "ref");
 
-		Binner binner = new Binner();
+		Binner binner = new Binner(binning);
 
 		int count = 0;
 		while (reader.next()) {
@@ -179,10 +182,10 @@ public class ReportCommand implements Callable<Integer> {
 			Variant variant = new Variant();
 			variant.chrom = reader.getString(chr);
 			variant.pos = reader.getInteger(position);
-			if (negLogPvalue) {
-				variant.pval = reader.getDouble(pval);
-			} else {
+			if (pvalFormat == PValFormat.PVAL) {
 				variant.pval = -Math.log10(reader.getDouble(pval));
+			} else {
+				variant.pval = reader.getDouble(pval);
 			}
 			if (rsid != null && !rsid.isEmpty()) {
 				variant.id = reader.getString(rsid);
@@ -209,7 +212,7 @@ public class ReportCommand implements Callable<Integer> {
 
 		System.out.println("Processed " + count + " variants.");
 
-		ManhattanPlot data = new ManhattanPlot(optimize);
+		ManhattanPlot data = new ManhattanPlot(binning);
 		data.setBins(binner.getBins());
 		data.setAnnotation(annotation);
 		data.setPeaks(new ArrayList<Variant>(binner.getPeaks()));

@@ -10,6 +10,7 @@ import com.github.lukfor.binner.ChromBin;
 import com.github.lukfor.binner.Chromosome;
 import com.github.lukfor.binner.Variant;
 import com.github.lukfor.util.AnnotationType;
+import com.github.lukfor.util.BinningAlgorithm;
 import com.github.lukfor.util.PlotlyUtil;
 
 public class ManhattanPlot {
@@ -42,8 +43,8 @@ public class ManhattanPlot {
 	
 	private Map<Integer, ChromBin> bins;
 
-	private boolean asShapes = true;
-
+	private BinningAlgorithm binning = BinningAlgorithm.BIN_TO_POINTS_AND_LINES;
+	
 	private AnnotationType annotation = AnnotationType.NONE;
 
 	private List<Variant> peaks;
@@ -54,8 +55,8 @@ public class ManhattanPlot {
 
 	private int countPoints = 0;
 
-	public ManhattanPlot(boolean asShapes) {
-		this.asShapes = asShapes;
+	public ManhattanPlot(BinningAlgorithm binning) {
+		this.binning = binning;
 	}
 
 	public void setBins(Map<Integer, ChromBin> bins) {
@@ -83,34 +84,12 @@ public class ManhattanPlot {
 		for (Variant variant : unbinnedVariants) {
 			int index = Chromosome.getOrder(variant.chrom);
 			ChromBin bin = bins.get(index);
+			if (bin == null) {
+				bin = new ChromBin(variant.chrom);
+				bins.put(index, bin);
+			}
 			bin.addUnbinnedVariant(variant);
 		}
-	}
-
-	private Map<String, Object> getBinsAsTrace(int chrIndex, long offset, String color) {
-		Map<String, Object> trace = new HashMap<String, Object>();
-		List<Double> x = new Vector<Double>();
-		List<Double> y = new Vector<Double>();
-		ChromBin bin = bins.get(chrIndex);
-		for (Bin singleBin : bin.getBins().values()) {
-			for (double p : singleBin.qval) {
-				x.add((singleBin.startpos / BIN_SIZE) + offset);
-				y.add(p);
-			}
-		}
-		trace.put("x", x);
-		trace.put("y", y);
-		trace.put("mode", "markers");
-		trace.put("type", "scatter");
-		trace.put("name", bin.chrom);
-
-		Map<String, Object> marker = new HashMap<>();
-		marker.put("color", color);
-		marker.put("size", POINT_SIZE);
-
-		trace.put("marker", marker);
-		trace.put("hoverinfo", "none");
-		return trace;
 	}
 
 	private List<Object> getBinsAsShapes(int chrIndex, long offset, String color) {
@@ -118,7 +97,7 @@ public class ManhattanPlot {
 		ChromBin bin = bins.get(chrIndex);
 		for (Bin singleBin : bin.getBins().values()) {
 			countBins += singleBin.qval.size();
-			for (Double[] line : singleBin.getLines()) {
+			for (Double[] line : singleBin.getLines(binning == BinningAlgorithm.BIN_TO_POINTS_AND_LINES)) {
 				if (!line[0].equals(line[1])) {
 					countLines++;
 					double x = (singleBin.startpos / BIN_SIZE) + offset;
@@ -138,7 +117,7 @@ public class ManhattanPlot {
 		List<Double> y = new Vector<Double>();
 		for (Bin singleBin : bin.getBins().values()) {
 			countBins += singleBin.qval.size();
-			for (Double[] line : singleBin.getLines()) {
+			for (Double[] line : singleBin.getLines(binning == BinningAlgorithm.BIN_TO_POINTS_AND_LINES)) {
 				if (line[0].equals(line[1])) {
 					countPoints++;
 					double x0 = (singleBin.startpos / BIN_SIZE) + offset;
@@ -177,11 +156,11 @@ public class ManhattanPlot {
 		int index = 0;
 		for (int chr : bins.keySet()) {
 			String color = CHROMOSOME_COLORS[index % CHROMOSOME_COLORS.length];
-			if (!asShapes) {
-				traces.add(getBinsAsTrace(chr, offset, color));
-			} else {
+			//if (!asShapes) {
+			//	traces.add(getBinsAsTrace(chr, offset, color));
+			//} else {
 				traces.add(getSingleBinsAsTrace(chr, offset, color));
-			}
+			//}
 			traces.add(getVariantsAsTrace(chr, offset, color));
 			offset = updateOffset(offset, chr);
 			index++;
@@ -328,9 +307,9 @@ public class ManhattanPlot {
 		//layout.put("width", 1300);
 		//layout.put("height", getHeight());
 		List<Object> shapes = new Vector<>();
-		if (asShapes) {
+
 			shapes.addAll(getShapes());
-		}
+		
 		shapes.addAll(getSignifanceLines());
 		layout.put("shapes", shapes);
 		

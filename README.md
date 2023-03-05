@@ -44,7 +44,7 @@ java -jar gwas-report.jar report \
   --ref REF \
   --alt ALT \
   --beta BETA \
-  --annotation TOP_HIT \ 
+  --annotation TOP_HIT \
   --output regenie.report.html
 ```
 
@@ -61,7 +61,7 @@ java -jar gwas-report.jar report \
   --alt ALT \
   --beta BETA \
   --gene NEAREST_GENE \
-  --annotation TOP_HIT \ 
+  --annotation TOP_HIT \
   --output regenie.report.html
 ```
 

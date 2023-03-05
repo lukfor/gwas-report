@@ -43,7 +43,7 @@ public class ManhattanPlotWriter {
 
 			for (Bin bin : chromBin.getBins().values()) {
 				bins++;
-				for (Double[] line : bin.getLines()) {
+				for (Double[] line : bin.getLines(true)) {
 					writer.setString("CHR", chromBin.chrom);
 					writer.setInteger("BP", (int) bin.startpos);
 					writer.setDouble("P", -1);

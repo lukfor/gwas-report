@@ -15,7 +15,7 @@ public class Bin {
 
 	private double size = 0.1;
 
-	public List<Double[]> getLines() {
+	public List<Double[]> getLines(boolean merge) {
 		List<Double[]> lines = new Vector<>();
 		// int start =
 
@@ -23,7 +23,7 @@ public class Bin {
 		Double[] line = new Double[] { first, first };
 		lines.add(line);
 		for (double p : qval) {
-			if (line[1] + size * 1.1 >= p) {
+			if (line[1] + size * 1.1 >= p && merge) {
 				line[1] = p;
 			} else {
 				line = new Double[] { p, p };

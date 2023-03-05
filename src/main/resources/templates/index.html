@@ -51,7 +51,7 @@
               {{peak.chrom}}:{{peak.pos}}
             </td>
             <td>
-              {{if peak.id.startsWith("rs")}}
+              {{if peak.id != null && peak.id.startsWith("rs")}}
                 <a href="https://www.ncbi.nlm.nih.gov/snp/{{peak.id}}" target="_blank">
                   {{peak.getName()}}
                 </a>
