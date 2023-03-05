@@ -40,7 +40,7 @@ public class Variant {
 		if (alt != null) {
 			label += "<br>Effect Allele: " + alt;
 		}
-		label += "<br>-log<sup>10</sup>(<i>P</i>): " + pval;
+		label += "<br>-log<sub>10</sub>(<i>P</i>): " + pval;
 		if (beta != null) {
 			label += "<br>Beta: " + beta;
 		}

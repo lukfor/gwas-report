@@ -38,6 +38,8 @@ public class ManhattanPlot {
 
 	public static final int POINT_SIZE = 5;
 
+	public static final int HEIGHT = 550;
+	
 	private Map<Integer, ChromBin> bins;
 
 	private boolean asShapes = true;
@@ -200,6 +202,7 @@ public class ManhattanPlot {
 	private Map<String, Object> getXAxis() {
 		Map<String, Object> axis = new HashMap<>();
 		axis.put("fixedrange", true);
+		axis.put("tickwidth", 0);
 		axis.put("tickmode", "array");
 		List<Object> tickvals = new Vector<Object>();
 		List<Object> ticktext = new Vector<Object>();
@@ -216,6 +219,7 @@ public class ManhattanPlot {
 
 		Map<String, Object> title = new HashMap<>();
 		title.put("text", "Chromosome");
+		title.put("automargin", false);
 		axis.put("title", title);
 
 		return axis;
@@ -320,20 +324,34 @@ public class ManhattanPlot {
 		if (annotation != AnnotationType.NONE) {
 			layout.put("annotations", getAnnotations(annotation));
 		}
-		layout.put("autosize", false);
-		layout.put("width", 1300);
-		layout.put("height", 800);
+		//layout.put("autosize", false);
+		//layout.put("width", 1300);
+		//layout.put("height", getHeight());
 		List<Object> shapes = new Vector<>();
 		if (asShapes) {
 			shapes.addAll(getShapes());
 		}
 		shapes.addAll(getSignifanceLines());
 		layout.put("shapes", shapes);
+		
+		Map<String, Object> margin = new HashMap<String, Object>();
+		margin.put("l", 50);
+		margin.put("r", 0);
+		margin.put("b", 50);
+		margin.put("t", 0);
+		margin.put("pad" ,4);
+		margin.put("autoexpand", false);
+		layout.put("margin", margin);
+		
 		return layout;
 	}
 
 	public void setAnnotation(AnnotationType annotation) {
 		this.annotation = annotation;
+	}
+	
+	public int getHeight() {
+		return HEIGHT;
 	}
 
 }
