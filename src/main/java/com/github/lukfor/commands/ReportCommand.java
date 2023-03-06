@@ -27,13 +27,16 @@ public class ReportCommand implements Callable<Integer> {
 	@Option(names = { "--input" }, description = "Input filename", required = true)
 	private String input;
 
-	@Option(names = { "--chr" }, description = "Chromosome column in input file", required = false,  showDefaultValue = Visibility.ALWAYS)
+	@Option(names = {
+			"--chr" }, description = "Chromosome column in input file", required = false, showDefaultValue = Visibility.ALWAYS)
 	private String chr = "CHROM";
 
-	@Option(names = { "--position", "--pos" }, description = "Position column in input file", required = false,  showDefaultValue = Visibility.ALWAYS)
+	@Option(names = { "--position",
+			"--pos" }, description = "Position column in input file", required = false, showDefaultValue = Visibility.ALWAYS)
 	private String position = "GENPOS";
 
-	@Option(names = { "--pvalue", "--pval" }, description = "PValue column in input file", required = false,  showDefaultValue = Visibility.ALWAYS)
+	@Option(names = { "--pvalue",
+			"--pval" }, description = "PValue column in input file", required = false, showDefaultValue = Visibility.ALWAYS)
 	private String pval = "LOG10P";
 
 	@Option(names = { "--title" }, description = "Custom title of report", required = false)
@@ -227,7 +230,17 @@ public class ReportCommand implements Callable<Integer> {
 		}
 
 		if (format == OutputFormat.CSV) {
-			ManhattanPlotWriter.saveAsFile(data, new File(output));
+			ManhattanPlotWriter writer = new ManhattanPlotWriter(data);
+			writer.setBinningAlgorithm(binning);
+			writer.setChr(chr);
+			writer.setPosition(position);
+			writer.setPval(pval);
+			writer.setRsid(rsid);
+			writer.setRef(ref);
+			writer.setAlt(alt);
+			writer.setBeta(beta);
+			writer.setGene(gene);
+			writer.saveAsFile(new File(output));
 			return 0;
 		}
 

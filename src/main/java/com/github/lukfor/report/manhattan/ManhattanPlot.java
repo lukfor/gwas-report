@@ -40,11 +40,11 @@ public class ManhattanPlot {
 	public static final int POINT_SIZE = 5;
 
 	public static final int HEIGHT = 550;
-	
+
 	private Map<Integer, ChromBin> bins;
 
 	private BinningAlgorithm binning = BinningAlgorithm.BIN_TO_POINTS_AND_LINES;
-	
+
 	private AnnotationType annotation = AnnotationType.NONE;
 
 	private List<Variant> peaks;
@@ -97,7 +97,7 @@ public class ManhattanPlot {
 		ChromBin bin = bins.get(chrIndex);
 		for (Bin singleBin : bin.getBins().values()) {
 			countBins += singleBin.qval.size();
-			for (Double[] line : singleBin.getLines(binning == BinningAlgorithm.BIN_TO_POINTS_AND_LINES)) {
+			for (Double[] line : singleBin.getLines(binning)) {
 				if (!line[0].equals(line[1])) {
 					countLines++;
 					double x = (singleBin.startpos / BIN_SIZE) + offset;
@@ -117,7 +117,7 @@ public class ManhattanPlot {
 		List<Double> y = new Vector<Double>();
 		for (Bin singleBin : bin.getBins().values()) {
 			countBins += singleBin.qval.size();
-			for (Double[] line : singleBin.getLines(binning == BinningAlgorithm.BIN_TO_POINTS_AND_LINES)) {
+			for (Double[] line : singleBin.getLines(binning)) {
 				if (line[0].equals(line[1])) {
 					countPoints++;
 					double x0 = (singleBin.startpos / BIN_SIZE) + offset;
@@ -156,11 +156,11 @@ public class ManhattanPlot {
 		int index = 0;
 		for (int chr : bins.keySet()) {
 			String color = CHROMOSOME_COLORS[index % CHROMOSOME_COLORS.length];
-			//if (!asShapes) {
-			//	traces.add(getBinsAsTrace(chr, offset, color));
-			//} else {
-				traces.add(getSingleBinsAsTrace(chr, offset, color));
-			//}
+			// if (!asShapes) {
+			// traces.add(getBinsAsTrace(chr, offset, color));
+			// } else {
+			traces.add(getSingleBinsAsTrace(chr, offset, color));
+			// }
 			traces.add(getVariantsAsTrace(chr, offset, color));
 			offset = updateOffset(offset, chr);
 			index++;
@@ -303,32 +303,32 @@ public class ManhattanPlot {
 		if (annotation != AnnotationType.NONE) {
 			layout.put("annotations", getAnnotations(annotation));
 		}
-		//layout.put("autosize", false);
-		//layout.put("width", 1300);
-		//layout.put("height", getHeight());
+		// layout.put("autosize", false);
+		// layout.put("width", 1300);
+		// layout.put("height", getHeight());
 		List<Object> shapes = new Vector<>();
 
-			shapes.addAll(getShapes());
-		
+		shapes.addAll(getShapes());
+
 		shapes.addAll(getSignifanceLines());
 		layout.put("shapes", shapes);
-		
+
 		Map<String, Object> margin = new HashMap<String, Object>();
 		margin.put("l", 50);
 		margin.put("r", 0);
 		margin.put("b", 50);
 		margin.put("t", 0);
-		margin.put("pad" ,4);
+		margin.put("pad", 4);
 		margin.put("autoexpand", false);
 		layout.put("margin", margin);
-		
+
 		return layout;
 	}
 
 	public void setAnnotation(AnnotationType annotation) {
 		this.annotation = annotation;
 	}
-	
+
 	public int getHeight() {
 		return HEIGHT;
 	}

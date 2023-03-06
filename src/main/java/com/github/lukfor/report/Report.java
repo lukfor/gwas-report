@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import com.github.lukfor.App;
 import com.github.lukfor.binner.Variant;
 import com.github.lukfor.report.manhattan.ManhattanPlot;
 
@@ -40,7 +41,7 @@ public class Report {
 		HtmlReport htmlReport = new HtmlReport("/templates");
 		htmlReport.setMainFilename("index.html");
 		htmlReport.set("application", "GWAS-Report");
-		htmlReport.set("version", "1.0.0");
+		htmlReport.set("version", App.VERSION);
 		htmlReport.set("manhattan", manhattan);
 		htmlReport.set("title", title != null ? title : DEFAULT_TITLE);
 		htmlReport.set("peaks", manhattan.getPeaks());
