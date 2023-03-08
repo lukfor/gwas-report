@@ -9,6 +9,10 @@ import com.github.lukfor.util.MaxPriorityQueue;
 
 public class Binner {
 
+	public static double DEFAULT_PEAK_PVAL_THRESHOLD = 6;
+
+	public static double DEFAULT_PEAK_VARIANT_COUNTING_PVAL_THRESHOLD = -Math.log10(5e-8);
+
 	private Variant peak_best_variant;
 
 	private ChrPosition peak_last_chrpos;
@@ -23,9 +27,9 @@ public class Binner {
 
 	private Map<Integer, ChromBin> bins;
 
-	private double manhattan_peak_pval_threshold = 6;
+	private double peakPvalThreshold = DEFAULT_PEAK_PVAL_THRESHOLD;
 
-	private double manhattan_peak_variant_counting_pval_threshold = -Math.log10(5e-8); // sign
+	private double peakVariantCountingPvalThreshold = DEFAULT_PEAK_VARIANT_COUNTING_PVAL_THRESHOLD;
 
 	private int manhattan_peak_sprawl_dist = 200_000;
 
@@ -36,7 +40,7 @@ public class Binner {
 	private int bin_length = 3_000_000;
 
 	private BinningAlgorithm binning;
-	
+
 	public Binner(BinningAlgorithm binning) {
 		this.binning = binning;
 		peak_best_variant = null;
@@ -46,6 +50,14 @@ public class Binner {
 		bins = new HashMap<Integer, ChromBin>();
 		_qval_bin_size = 0.05;
 		num_significant_in_current_peak = 0;
+	}
+
+	public void setPeakPvalThreshold(double peakPvalThreshold) {
+		this.peakPvalThreshold = peakPvalThreshold;
+	}
+
+	public void setPeakVariantCountingPvalThreshold(double peakVariantCountingPvalThreshold) {
+		this.peakVariantCountingPvalThreshold = peakVariantCountingPvalThreshold;
 	}
 
 	public void process_variant(Variant variant) {
@@ -61,15 +73,15 @@ public class Binner {
 			unbinned_variant_pq.add(variant);
 			return;
 		}
-		
-		if (variant.pval > manhattan_peak_pval_threshold) {
+
+		if (variant.pval > peakPvalThreshold) {
 			if (peak_best_variant == null) {
 				peak_best_variant = variant;
 				peak_last_chrpos = new ChrPosition(variant.chrom, variant.pos);
-				num_significant_in_current_peak = variant.pval > manhattan_peak_variant_counting_pval_threshold ? 1 : 0;
+				num_significant_in_current_peak = variant.pval > peakVariantCountingPvalThreshold ? 1 : 0;
 			} else if ((peak_last_chrpos.chr.equals(variant.chrom))
 					&& (peak_last_chrpos.position + manhattan_peak_sprawl_dist > variant.pos)) {
-				if (variant.pval > manhattan_peak_variant_counting_pval_threshold) {
+				if (variant.pval > peakVariantCountingPvalThreshold) {
 					num_significant_in_current_peak += 1;
 				}
 				peak_last_chrpos = new ChrPosition(variant.chrom, variant.pos);
@@ -81,7 +93,7 @@ public class Binner {
 				}
 			} else {
 				peak_best_variant.num_significant_in_peak = num_significant_in_current_peak;
-				num_significant_in_current_peak = variant.pval > manhattan_peak_variant_counting_pval_threshold ? 1 : 0;
+				num_significant_in_current_peak = variant.pval > peakVariantCountingPvalThreshold ? 1 : 0;
 				_maybe_peak_variant(peak_best_variant);
 				peak_best_variant = variant;
 				peak_last_chrpos = new ChrPosition(variant.chrom, variant.pos);

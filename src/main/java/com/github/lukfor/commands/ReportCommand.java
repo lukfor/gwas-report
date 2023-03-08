@@ -1,12 +1,17 @@
 package com.github.lukfor.commands;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.Callable;
 
 import com.github.lukfor.App;
 import com.github.lukfor.binner.Binner;
 import com.github.lukfor.binner.Variant;
+import com.github.lukfor.report.IndexReport;
 import com.github.lukfor.report.Report;
 import com.github.lukfor.report.manhattan.ManhattanPlot;
 import com.github.lukfor.report.manhattan.ManhattanPlotWriter;
@@ -17,15 +22,17 @@ import com.github.lukfor.util.PValFormat;
 
 import genepi.io.table.reader.CsvTableReader;
 import genepi.io.table.reader.ITableReader;
+import lukfor.reports.util.FileUtil;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Help.Visibility;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
 @Command(name = "report", version = App.VERSION)
 public class ReportCommand implements Callable<Integer> {
 
-	@Option(names = { "--input" }, description = "Input filename", required = true)
-	private String input;
+	@Parameters(description = "Set files")
+	private List<File> files;
 
 	@Option(names = {
 			"--chr" }, description = "Chromosome column in input file", required = false, showDefaultValue = Visibility.ALWAYS)
@@ -79,14 +86,35 @@ public class ReportCommand implements Callable<Integer> {
 	private String gene = null;
 
 	@Option(names = { "--output" }, description = "Output filename", required = true)
-	private String output;
+	private File output;
 
 	@Option(names = {
 			"--format" }, description = "Output format. Possible values: ${COMPLETION-CANDIDATES}", required = false, showDefaultValue = Visibility.ALWAYS)
 	private OutputFormat format = OutputFormat.HTML;
 
-	public void setInput(String input) {
-		this.input = input;
+	@Option(names = { "--tab-name" }, description = "Add additional tab to report", required = false)
+	private String tab = null;
+
+	@Option(names = { "--tab-links" }, description = "Add additional links to report", required = false)
+	private String tabLinks = null;
+
+	@Option(names = { "--names" }, description = "Display Name of files", required = false)
+	private String names = null;
+
+	@Option(names = {
+			"--peak-pval-threshold" }, description = "Pval threshold for peak detection", required = false, showDefaultValue = Visibility.ALWAYS)
+	private double peakPvalThreshold = Binner.DEFAULT_PEAK_PVAL_THRESHOLD;
+
+	@Option(names = {
+			"--peak-variant-Counting-pval-threshold" }, description = "peak-variant-Counting-pval-threshold", required = false, showDefaultValue = Visibility.ALWAYS)
+	private double peakVariantCountingPvalThreshold = Binner.DEFAULT_PEAK_VARIANT_COUNTING_PVAL_THRESHOLD;
+
+	public void setFiles(List<File> files) {
+		this.files = files;
+	}
+
+	public void setFiles(File... files) {
+		this.files = Arrays.asList(files);
 	}
 
 	public void setChr(String chr) {
@@ -105,7 +133,7 @@ public class ReportCommand implements Callable<Integer> {
 		this.separator = separator;
 	}
 
-	public void setOutput(String output) {
+	public void setOutput(File output) {
 		this.output = output;
 	}
 
@@ -149,26 +177,114 @@ public class ReportCommand implements Callable<Integer> {
 		this.format = format;
 	}
 
+	public void setTab(String tab) {
+		this.tab = tab;
+	}
+
+	public void setTabLinks(String tabLinks) {
+		this.tabLinks = tabLinks;
+	}
+
+	public void setNames(String names) {
+		this.names = names;
+	}
+
+	public void setPeakPvalThreshold(double peakPvalThreshold) {
+		this.peakPvalThreshold = peakPvalThreshold;
+	}
+
+	public void setPeakVariantCountingPvalThreshold(double peakVariantCountingPvalThreshold) {
+		this.peakVariantCountingPvalThreshold = peakVariantCountingPvalThreshold;
+	}
+
 	@Override
 	public Integer call() throws Exception {
 
+		if (files.isEmpty()) {
+			System.out.println("No input files provided.");
+			return 1;
+		}
+
+		if (files.size() == 1) {
+			ManhattanPlot result = createHtmlReport(title, files.get(0), output);
+			if (result != null) {
+				return 0;
+			} else {
+				return 1;
+			}
+		} else {
+
+			File assets = initAssets();
+
+			List<String> phenotypes = new Vector<String>();
+			if (names != null) {
+				phenotypes = Arrays.asList(names.split(","));
+				if (files.size() != phenotypes.size()) {
+					System.out.println(
+							"Error: Provided " + files.size() + " files, but " + phenotypes.size() + " phenotypes");
+					return 1;
+				}
+			} else {
+				for (File file : files) {
+					phenotypes.add(file.getName());
+				}
+			}
+
+			List<String> tabLinkFiles = new Vector<String>();
+			if (tabLinks != null) {
+				for (String file : tabLinks.split(",")) {
+					File assetFile = copyToAssets(assets, new File(file));
+					tabLinkFiles.add(genepi.io.FileUtil.path(assets.getName(), assetFile.getName()));
+				}
+			}
+
+			List<String> outputFiles = new Vector<String>();
+			List<Integer> loci = new Vector<Integer>();
+
+			for (int i = 0; i < files.size(); i++) {
+				File file = files.get(i);
+				String fileName = file.getName() + ".plot.html";
+				File fileOutput = new File(assets, fileName);
+				ManhattanPlot result = createHtmlReport(phenotypes.get(i), file, fileOutput);
+				if (result == null) {
+					return 1;
+				}
+				outputFiles.add(genepi.io.FileUtil.path(assets.getName(), fileName));
+				loci.add(result.getPeaks().size());
+			}
+
+			IndexReport indexReport = new IndexReport();
+			indexReport.setFiles(outputFiles);
+			indexReport.setPhenotypes(phenotypes);
+			indexReport.setLoci(loci);
+			indexReport.setTitle(title);
+			indexReport.setTab(tab != null ? tab : "");
+			indexReport.setTabLinks(tabLinkFiles);
+			indexReport.saveAsFile(output);
+
+			return 0;
+		}
+
+	}
+
+	private ManhattanPlot createHtmlReport(String title, File input, File output) throws IOException {
 		System.out.println("Process file '" + input + "'...");
 
-		CsvTableReader reader = new CsvTableReader(input, separator, true);
+		CsvTableReader reader = new CsvTableReader(input.getAbsolutePath(), separator, true);
 
 		if (!reader.hasColumn(chr)) {
 			System.out.println("Error: Column '" + chr + "' not found.");
-			return 1;
+			return null;
 		}
 
 		if (!reader.hasColumn(chr)) {
 			System.out.println("Error: Column '" + position + "' not found.");
-			return 1;
+			return null;
 		}
 
 		if (!reader.hasColumn(chr)) {
 			System.out.println("Error: Column '" + pval + "' not found.");
-			return 1;
+			return null;
 		}
 
 		rsid = checkColumn(reader, rsid, "rsid");
@@ -178,7 +294,9 @@ public class ReportCommand implements Callable<Integer> {
 		ref = checkColumn(reader, ref, "ref");
 
 		Binner binner = new Binner(binning);
-
+		binner.setPeakPvalThreshold(peakPvalThreshold);
+		binner.setPeakVariantCountingPvalThreshold(peakVariantCountingPvalThreshold);
+		
 		int count = 0;
 		while (reader.next()) {
 			count++;
@@ -220,13 +338,15 @@ public class ReportCommand implements Callable<Integer> {
 		data.setAnnotation(annotation);
 		data.setPeaks(new ArrayList<Variant>(binner.getPeaks()));
 		data.setUnbinnedVariants(new ArrayList<Variant>(binner.getUnbinnedVariants()));
-
+		data.setGenomwideSignificanceLine(peakVariantCountingPvalThreshold);
+		data.setSuggestiveSignificanceLine(peakPvalThreshold);
+		
 		if (format == OutputFormat.HTML) {
 			Report report = new Report(data);
 			if (title != null && !title.isEmpty()) {
 				report.setTitle(title);
 			}
-			report.saveAsFile(new File(output));
+			report.saveAsFile(output);
 		}
 
 		if (format == OutputFormat.CSV) {
@@ -240,16 +360,38 @@ public class ReportCommand implements Callable<Integer> {
 			writer.setAlt(alt);
 			writer.setBeta(beta);
 			writer.setGene(gene);
-			writer.saveAsFile(new File(output));
-			return 0;
+			writer.saveAsFile(output);
+			return data;
 		}
 
 		if (format == OutputFormat.JSON) {
 			System.out.println("Not yet implemented.");
-			return 1;
+			return null;
 		}
 
-		return 0;
+		return data;
+	}
+
+	private File initAssets() {
+
+		String postfix = "_reports";
+
+		String folderFilename = output.getPath().replaceAll(".html", postfix);
+
+		File folderFile = new File(folderFilename);
+		if (folderFile.exists()) {
+			System.out.println("Clean up files folder.");
+			FileUtil.deleteFolder(folderFile);
+		}
+		folderFile.mkdirs();
+
+		return folderFile;
+	}
+
+	private File copyToAssets(File assets, File file) {
+		File target = new File(assets, file.getName());
+		genepi.io.FileUtil.copy(file.getAbsolutePath(), target.getAbsolutePath());
+		return target;
 	}
 
 	private String checkColumn(ITableReader reader, String column, String param) {

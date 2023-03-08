@@ -15,7 +15,7 @@ import com.github.lukfor.util.PlotlyUtil;
 
 public class ManhattanPlot {
 
-	public static final double SUGGESTIVE_SIGNIFICANCE_LINE = -Math.log10(1e-5);
+	public static final double DEFAULT_SUGGESTIVE_SIGNIFICANCE_LINE = -Math.log10(1e-5);
 
 	public static final String SUGGESTIVE_SIGNIFICANCE_LINE_COLOR = "#d0d0d0";
 
@@ -23,7 +23,7 @@ public class ManhattanPlot {
 
 	public static final String SUGGESTIVE_SIGNIFICANCE_LINE_STYLE = "dash";
 
-	public static final double GENOMEWIDE_SIGNIFICANCE_LINE = -Math.log10(5e-08);
+	public static final double DEFAULT_GENOMEWIDE_SIGNIFICANCE_LINE = -Math.log10(5e-08);
 
 	public static final String GENOMEWIDE_SIGNIFICANCE_LINE_COLOR = "#c86467";
 
@@ -40,6 +40,10 @@ public class ManhattanPlot {
 	public static final int POINT_SIZE = 5;
 
 	public static final int HEIGHT = 550;
+
+	private double suggestiveSignificanceLine = DEFAULT_SUGGESTIVE_SIGNIFICANCE_LINE;
+
+	private double genomwideSignificanceLine = DEFAULT_GENOMEWIDE_SIGNIFICANCE_LINE;
 
 	private Map<Integer, ChromBin> bins;
 
@@ -65,6 +69,14 @@ public class ManhattanPlot {
 
 	public Map<Integer, ChromBin> getBins() {
 		return bins;
+	}
+
+	public void setGenomwideSignificanceLine(double genomwideSignificanceLine) {
+		this.genomwideSignificanceLine = genomwideSignificanceLine;
+	}
+
+	public void setSuggestiveSignificanceLine(double suggestiveSignificanceLine) {
+		this.suggestiveSignificanceLine = suggestiveSignificanceLine;
 	}
 
 	public void setPeaks(List<Variant> peaks) {
@@ -143,9 +155,9 @@ public class ManhattanPlot {
 
 	private List<Object> getSignifanceLines() {
 		List<Object> shapes = new Vector<>();
-		shapes.add(PlotlyUtil.createHorizontalLine(SUGGESTIVE_SIGNIFICANCE_LINE, SUGGESTIVE_SIGNIFICANCE_LINE_COLOR,
+		shapes.add(PlotlyUtil.createHorizontalLine(suggestiveSignificanceLine, SUGGESTIVE_SIGNIFICANCE_LINE_COLOR,
 				SUGGESTIVE_SIGNIFICANCE_LINE_WIDTH, SUGGESTIVE_SIGNIFICANCE_LINE_STYLE));
-		shapes.add(PlotlyUtil.createHorizontalLine(GENOMEWIDE_SIGNIFICANCE_LINE, GENOMEWIDE_SIGNIFICANCE_LINE_COLOR,
+		shapes.add(PlotlyUtil.createHorizontalLine(genomwideSignificanceLine, GENOMEWIDE_SIGNIFICANCE_LINE_COLOR,
 				GENOMEWIDE_SIGNIFICANCE_LINE_WIDTH, GENOMEWIDE_SIGNIFICANCE_LINE_STYLE));
 		return shapes;
 	}
@@ -280,7 +292,7 @@ public class ManhattanPlot {
 			annotation.put("xref", "x");
 			annotation.put("yref", "y");
 			if (annotationType == AnnotationType.GENE) {
-				annotation.put("text", variant.gene);
+				annotation.put("text", "<i>" + variant.gene + "</i>");
 			} else {
 				annotation.put("text", variant.getName());
 			}

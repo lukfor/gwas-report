@@ -15,70 +15,80 @@
 
 <body>
 
-  <div class="container">
+  <div class="container-fluid">
     <div class="row mt-3">
-      <h1>{{title}}</h1>
+      <div class="col">
+        <h1>{{title}}</h1>
+      </div>
     </div>
     
     <div class="row mt-3">
-     <h2>Manhattan Plot</h2>
+      <div class="col">
+        <h2>Manhattan Plot</h2>
+      </div>
+    </div>
+    <div class="row mt-3">
+      <div class="col">
+        <div id="plot" style="height: {{manhattan.getHeight()}}px;" class="""></div>
+      </div>
     </div>
 
-    <div id="plot" style="height: {{manhattan.getHeight()}}px;" class="row mt-3"></div>
-
-
     <div class="row mt-3">
-     <h2>Top Loci</h2>
+      <div class="col">
+        <h2>Top Loci</h2>
+      </div>
     </div>
 
     <div class="row mt-3">
-      <table id="table-loci" class="table table-sm">
-        <thead>
-          <tr>
-            <th>Variant</th>
-            <th>ID</th>
-            <th>Ref Allele</th>
-            <th>Effect Allele</th>
-            <th>Nearest Gene</th>
-            <th>-log<sub>10</sub>(<i>P</i>)</th>
-            <th>Beta</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{for peak in peaks}}
-          <tr>
-            <td>
-              {{peak.chrom}}:{{peak.pos}}
-            </td>
-            <td>
-              {{if peak.id != null && peak.id.startsWith("rs")}}
-                <a href="https://www.ncbi.nlm.nih.gov/snp/{{peak.id}}" target="_blank">
-                  {{peak.getName()}}
-                </a>
-              {{else}}
-                -
-              {{end}}
-            </td>
-            <td>
-              {{peak.ref}}
-            </td>
-            <td>
-              {{peak.alt}}
-            </td>            
-            <td>
-              {{peak.gene}}
-            </td>
-            <td>
-              {{peak.pval}}
-            </td>
-            <td>
-              {{peak.beta}}
-            </td>          
-          </tr>
-          {{end}}
-        </tbody>
+      <div class="col">
+        <table id="table-loci" class="table table-sm">
+          <thead>
+            <tr>
+              <th>Variant</th>
+              <th>ID</th>
+              <th>Ref Allele</th>
+              <th>Effect Allele</th>
+              <th>Nearest Gene</th>
+              <th>-log<sub>10</sub>(<i>P</i>)</th>
+              <th>Beta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{for peak in peaks}}
+            <tr>
+              <td>
+                {{peak.chrom}}:{{peak.pos}}
+              </td>
+              <td>
+                {{if peak.id != null && peak.id.startsWith("rs")}}
+                  <a href="https://www.ncbi.nlm.nih.gov/snp/{{peak.id}}" target="_blank">
+                    {{peak.getName()}}
+                  </a>
+                {{else}}
+                  -
+                {{end}}
+              </td>
+              <td>
+                {{peak.ref}}
+              </td>
+              <td>
+                {{peak.alt}}
+              </td>            
+              <td>
+                {{peak.gene}}
+              </td>
+              <td>
+                {{peak.pval}}
+              </td>
+              <td>
+                {{peak.beta}}
+              </td>          
+            </tr>
+            {{end}}
+          </tbody>
 
-      </table>
+        </table>
+      </div>
     </div>
   </div>
 
