@@ -71,6 +71,16 @@ public class ManhattanPlot {
 		return bins;
 	}
 
+	protected ChromBin getBin(String chrom) {
+		int index = Chromosome.getOrder(chrom);
+		ChromBin bin = bins.get(index);
+		if (bin == null) {
+			bin = new ChromBin(chrom);
+			bins.put(index, bin);
+		}
+		return bin;
+	}
+
 	public void setGenomwideSignificanceLine(double genomwideSignificanceLine) {
 		this.genomwideSignificanceLine = genomwideSignificanceLine;
 	}
@@ -81,8 +91,7 @@ public class ManhattanPlot {
 
 	public void setPeaks(List<Variant> peaks) {
 		for (Variant peak : peaks) {
-			int index = Chromosome.getOrder(peak.chrom);
-			ChromBin bin = bins.get(index);
+			ChromBin bin = getBin(peak.chrom);
 			bin.addPeakVariant(peak);
 		}
 		this.peaks = peaks;
@@ -94,12 +103,7 @@ public class ManhattanPlot {
 
 	public void setUnbinnedVariants(List<Variant> unbinnedVariants) {
 		for (Variant variant : unbinnedVariants) {
-			int index = Chromosome.getOrder(variant.chrom);
-			ChromBin bin = bins.get(index);
-			if (bin == null) {
-				bin = new ChromBin(variant.chrom);
-				bins.put(index, bin);
-			}
+			ChromBin bin = getBin(variant.chrom);
 			bin.addUnbinnedVariant(variant);
 		}
 	}
