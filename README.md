@@ -2,6 +2,7 @@
 
 > Create interactive html reports from GWAS summary statistics
 
+**This script is now part of [genomic-utils](https://github.com/genepi/genomic-utils).**
 
 ## Installation
 
